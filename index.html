@@ -1,62 +1,77 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Game Analytics Dashboard</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
-        .header { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-        h1 { margin: 0; }
-        .card { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-        input, select, button { padding: 10px; font-size: 14px; border: 1px solid #ddd; border-radius: 6px; }
-        button { background: #007bff; color: white; cursor: pointer; }
+        body { font-family: Arial; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        .card { background: white; padding: 20px; margin: 20px 0; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        input, select, button { padding: 10px; font-size: 14px; margin: 5px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #007bff; color: white; cursor: pointer; border: none; }
         button:hover { background: #0056b3; }
         table { width: 100%; border-collapse: collapse; }
-        th { background: #f5f5f5; padding: 10px; text-align: left; }
-        td { padding: 10px; border-bottom: 1px solid #eee; }
-        .badge { background: #e3f2fd; color: #1565c0; padding: 3px 8px; border-radius: 3px; font-size: 12px; }
-        .hidden { display: none; }
-        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
-        .stat-card { background: #f9f9f9; padding: 15px; border-radius: 6px; border: 1px solid #eee; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f5f5f5; font-weight: 600; }
+        .badge { background: #e3f2fd; color: #1565c0; padding: 4px 8px; border-radius: 3px; font-size: 11px; font-weight: 500; }
+        .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 20px 0; }
+        .stat { background: #f9f9f9; padding: 15px; border-radius: 6px; border: 1px solid #eee; }
         .stat-value { font-size: 24px; font-weight: bold; }
+        .stat-label { font-size: 12px; color: #666; }
+        .search-area { display: flex; gap: 10px; margin: 15px 0; align-items: center; }
+        .error { color: #d32f2f; padding: 10px; background: #ffebee; border-radius: 4px; margin: 10px 0; }
+        .success { color: #388e3c; padding: 10px; background: #e8f5e9; border-radius: 4px; margin: 10px 0; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>🎮 Game Analytics Dashboard</h1>
-        <p>Connect your Google Sheet to view user events</p>
-    </div>
-
     <div class="card">
-        <p><strong>Share your Google Sheet publicly, then paste the link below:</strong></p>
-        <input type="text" id="sheetUrl" placeholder="https://docs.google.com/spreadsheets/d/..." style="width: 70%;">
-        <button onclick="loadSheet()">Load Sheet</button>
-        <div id="error" class="hidden" style="color: red; margin-top: 10px;"></div>
+        <h1>🎮 Game Analytics Dashboard</h1>
+        <p>Share your Google Sheet publicly, then paste the link below:</p>
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="sheetUrl" placeholder="https://docs.google.com/spreadsheets/d/..." style="flex: 1;">
+            <button onclick="loadSheet()">Load Sheet</button>
+        </div>
+        <div id="error" class="error" style="display: none;"></div>
+        <div id="success" class="success" style="display: none;"></div>
     </div>
 
-    <div id="stats" class="hidden">
-        <div class="stats-grid">
-            <div class="stat-card"><div style="font-size: 12px; color: #666;">Total Events</div><div class="stat-value" id="totalEvents">0</div></div>
-            <div class="stat-card"><div style="font-size: 12px; color: #666;">Active Users</div><div class="stat-value" id="totalUsers">0</div></div>
-            <div class="stat-card"><div style="font-size: 12px; color: #666;">Highest Level</div><div class="stat-value" id="maxLevel">0</div></div>
-            <div class="stat-card"><div style="font-size: 12px; color: #666;">Themes</div><div class="stat-value" id="themes">0</div></div>
+    <div id="content" style="display: none;">
+        <div class="card">
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-label">Total Events</div>
+                    <div class="stat-value" id="totalEvents">0</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Active Users</div>
+                    <div class="stat-value" id="totalUsers">0</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Highest Level</div>
+                    <div class="stat-value" id="maxLevel">0</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Themes</div>
+                    <div class="stat-value" id="themeCount">0</div>
+                </div>
+            </div>
         </div>
 
         <div class="card">
             <h3>Search & Filter</h3>
-            <input type="text" id="searchId" placeholder="Search user ID..." onkeyup="renderTable()">
-            <select id="levelRange" onchange="renderTable()" style="margin-left: 10px;">
-                <option value="all">All Levels</option>
-                <option value="1-10">1-10</option>
-                <option value="11-20">11-20</option>
-                <option value="21-30">21-30</option>
-            </select>
-            <div id="eventCount" style="margin-top: 10px; font-size: 13px;">Found <strong>0</strong> events</div>
+            <div class="search-area">
+                <input type="text" id="searchId" placeholder="Search User ID..." onkeyup="filterData()" style="flex: 1;">
+                <select id="levelRange" onchange="filterData()">
+                    <option value="all">All Levels</option>
+                    <option value="1-10">1-10</option>
+                    <option value="11-20">11-20</option>
+                    <option value="21-30">21-30</option>
+                    <option value="31-40">31-40</option>
+                </select>
+            </div>
+            <div id="resultCount" style="font-size: 14px; color: #666;">Found <strong>0</strong> events</div>
         </div>
 
         <div class="card">
-            <div id="tableSection"></div>
+            <div id="tableContainer"></div>
         </div>
     </div>
 
@@ -64,71 +79,133 @@
         let allEvents = [];
 
         async function loadSheet() {
-            const url = document.getElementById('sheetUrl').value;
-            const error = document.getElementById('error');
-            error.classList.add('hidden');
+            const url = document.getElementById('sheetUrl').value.trim();
+            const errorDiv = document.getElementById('error');
+            const successDiv = document.getElementById('success');
+            const contentDiv = document.getElementById('content');
+            
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
 
             if (!url) {
-                error.textContent = 'Please paste a URL';
-                error.classList.remove('hidden');
+                errorDiv.textContent = '❌ Please paste a Google Sheet URL';
+                errorDiv.style.display = 'block';
                 return;
             }
 
             try {
-                const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-                const gidMatch = url.match(/[#&]gid=([0-9]+)/);
-                const sheetId = match ? match[1] : '';
-                const gid = gidMatch ? gidMatch[1] : '0';
+                const sheetIdMatch = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+                if (!sheetIdMatch) throw new Error('Invalid URL format');
+                const sheetId = sheetIdMatch[1];
 
-                if (!sheetId) throw new Error('Invalid URL');
+                const gidMatch = url.match(/[#&]gid=([0-9]+)/);
+                const gid = gidMatch ? gidMatch[1] : '0';
 
                 const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
                 const response = await fetch(csvUrl);
+                
+                if (!response.ok) throw new Error('Failed to fetch sheet. Make sure it\'s shared publicly!');
+                
                 const text = await response.text();
                 const lines = text.trim().split('\n');
 
+                if (lines.length < 2) throw new Error('No data found in sheet');
+
                 allEvents = lines.slice(1).map(line => {
-                    const vals = line.split('\t');
-                    return { id: vals[0], event: vals[1], level: parseInt(vals[2]) || 0, theme: vals[6] || '', timestamp: vals[4] };
-                });
+                    const parts = line.split('\t');
+                    return {
+                        id: parts[0] ? parts[0].trim() : '',
+                        event: parts[1] ? parts[1].trim() : '',
+                        level: parseInt(parts[2]) || 0,
+                        ad_type: parts[3] ? parts[3].trim() : '',
+                        time: parts[4] ? parts[4].trim() : '',
+                        version: parts[5] ? parts[5].trim() : '',
+                        theme: parts[6] ? parts[6].trim() : ''
+                    };
+                }).filter(e => e.id && e.event);
+
+                console.log(`✅ Loaded ${allEvents.length} events`);
 
                 updateStats();
-                renderTable();
-                document.getElementById('stats').classList.remove('hidden');
+                filterData();
+                
+                contentDiv.style.display = 'block';
+                successDiv.textContent = `✅ Successfully loaded ${allEvents.length} events!`;
+                successDiv.style.display = 'block';
             } catch (e) {
-                error.textContent = 'Error: Make sure sheet is public. ' + e.message;
-                error.classList.remove('hidden');
+                console.error('Error:', e);
+                errorDiv.textContent = '❌ Error: ' + e.message;
+                errorDiv.style.display = 'block';
             }
         }
 
         function updateStats() {
             const users = new Set(allEvents.map(e => e.id)).size;
-            const max = Math.max(...allEvents.map(e => e.level));
+            const maxLevel = Math.max(...allEvents.map(e => e.level), 0);
             const themes = new Set(allEvents.map(e => e.theme).filter(t => t)).size;
+
             document.getElementById('totalEvents').textContent = allEvents.length;
             document.getElementById('totalUsers').textContent = users;
-            document.getElementById('maxLevel').textContent = max;
-            document.getElementById('themes').textContent = themes;
+            document.getElementById('maxLevel').textContent = maxLevel;
+            document.getElementById('themeCount').textContent = themes;
         }
 
-        function renderTable() {
-            const search = document.getElementById('searchId').value;
-            const range = document.getElementById('levelRange').value;
-            const [min, max] = range === 'all' ? [0, 999] : range.split('-').map(Number);
+        function filterData() {
+            const searchId = document.getElementById('searchId').value.trim().toLowerCase();
+            const levelRange = document.getElementById('levelRange').value;
+            
+            let minLevel = 0, maxLevel = 999;
+            if (levelRange !== 'all') {
+                const [min, max] = levelRange.split('-').map(Number);
+                minLevel = min;
+                maxLevel = max;
+            }
 
-            let filtered = allEvents.filter(e => e.level >= min && e.level <= max);
-            if (search) filtered = filtered.filter(e => e.id.includes(search));
-
-            document.getElementById('eventCount').innerHTML = `Found <strong>${filtered.length}</strong> events`;
-
-            let html = '<table><thead><tr><th>Event</th><th>Level</th><th>Theme</th><th>Timestamp</th></tr></thead><tbody>';
-            filtered.slice(0, 50).forEach(e => {
-                html += `<tr><td><span class="badge">${e.event}</span></td><td>${e.level}</td><td>${e.theme || '—'}</td><td>${e.timestamp}</td></tr>`;
+            let filtered = allEvents.filter(e => {
+                const idMatch = searchId === '' || e.id.toLowerCase().includes(searchId);
+                const levelMatch = e.level >= minLevel && e.level <= maxLevel;
+                return idMatch && levelMatch;
             });
-            html += '</tbody></table>';
-            if (filtered.length > 50) html += `<p style="text-align: center; color: #666; font-size: 12px;">Showing 50 of ${filtered.length}</p>`;
-            document.getElementById('tableSection').innerHTML = html;
+
+            console.log(`Filtered: ${filtered.length} events (search: "${searchId}", level: ${minLevel}-${maxLevel})`);
+
+            document.getElementById('resultCount').innerHTML = `Found <strong>${filtered.length}</strong> events`;
+
+            renderTable(filtered);
         }
+
+        function renderTable(filtered) {
+            const container = document.getElementById('tableContainer');
+            
+            if (filtered.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">No events found</p>';
+                return;
+            }
+
+            let html = '<table><thead><tr><th>Event</th><th style="width: 80px;">Level</th><th>Theme</th><th>Timestamp</th></tr></thead><tbody>';
+            
+            filtered.slice(0, 100).forEach(e => {
+                html += `<tr>
+                    <td><span class="badge">${e.event}</span></td>
+                    <td style="font-weight: 600; text-align: center;">${e.level}</td>
+                    <td>${e.theme || '—'}</td>
+                    <td style="font-size: 12px;">${e.time}</td>
+                </tr>`;
+            });
+
+            html += '</tbody></table>';
+
+            if (filtered.length > 100) {
+                html += `<p style="text-align: center; color: #999; font-size: 12px; margin-top: 10px;">Showing 100 of ${filtered.length} events</p>`;
+            }
+
+            container.innerHTML = html;
+        }
+
+        window.addEventListener('load', () => {
+            const url = document.getElementById('sheetUrl').value;
+            if (url) loadSheet();
+        });
     </script>
 </body>
 </html>

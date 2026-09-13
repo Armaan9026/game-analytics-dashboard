@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Analytics Dashboard</title>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/react.production.min.js"></script>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+            background: #f5f5f5;
+            color: #1a1a1a;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: white;
+            padding: 30px 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            color: #1a1a1a;
+        }
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .url-section {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        button {
+            padding: 12px 24px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .error {
+            color: #d32f2f;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #1565c0;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #eee;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+        .search-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .search-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .search-group label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+        .search-group input,
+        .search-group select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .table-wrapper {
+            overflow-x: auto;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        thead {
+            background: #f5f5f5;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            padding: 12px;
+            text-align: left;
+            color: #666;
+            font-weight: 600;
+        }
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
+        }
+        tbody tr:hover {
+            background: #f9f9f9;
+        }
+        .badge {
+            display: inline-block;
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.3;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        .pagination-info {
+            text-align: center;
+            padding: 12px;
+            background: #f5f5f5;
+            border-top: 1px solid #ddd;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo } = React;
+
+        function Dashboard() {
+            const [sheetUrl, setSheetUrl] = useState('');
+            const [events, setEvents] = useState([]);
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState('');
+            const [searchId, setSearchId] = useState('');
+            const [selectedRange, setSelectedRange] = useState('all');
+
+            const levelRanges = [
+                { label: 'All levels', value: 'all', min: 0, max: 999 },
+                { label: '1-10', value: '1-10', min: 1, max: 10 },
+                { label: '11-20', value: '11-20', min: 11, max: 20 },
+                { label: '21-30', value: '21-30', min: 21, max: 30 },
+                { label: '31-40', value: '31-40', min: 31, max: 40 },
+            ];
+
+            const fetchSheetData = async () => {
+                try {
+                    setLoading(true);
+                    setError('');
+                    
+                    if (!sheetUrl.trim()) {
+                        setError('Please paste a Google Sheets URL');
+                        setLoading(false);
+                        return;
+                    }
+
+                    let sheetId = '';
+                    let gid = '0';
+                    
+                    const match = sheetUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+                    if (match) {
+                        sheetId = match[1];
+                    }
+                    
+                    const gidMatch = sheetUrl.match(/[#&]gid=([0-9]+)/);
+                    if (gidMatch) {
+                        gid = gidMatch[1];
+                    }
+
+                    if (!sheetId) {
+                        setError('Invalid Google Sheets URL');
+                        setLoading(false);
+                        return;
+                    }
+
+                    const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
+                    
+                    const response = await fetch(csvUrl);
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch sheet. Make sure it\'s shared publicly.');
+                    }
+                    
+                    const text = await response.text();
+                    const lines = text.trim().split('\n');
+                    
+                    if (lines.length < 2) {
+                        setError('No data found in sheet');
+                        setLoading(false);
+                        return;
+                    }
+
+                    const parsedEvents = lines.slice(1).map(line => {
+                        const values = line.split('\t');
+                        return {
+                            installation_id: values[0],
+                            event_name: values[1],
+                            level: parseInt(values[2]) || 0,
+                            ad_type: values[3] || '',
+                            timestamp: values[4],
+                            app_version: values[5] || '',
+                            theme: values[6] || ''
+                        };
+                    });
+
+                    setEvents(parsedEvents);
+                } catch (err) {
+                    setError(err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const uniqueUsers = useMemo(() => [...new Set(events.map(e => e.installation_id))], [events]);
+            const selectedRange2 = levelRanges.find(r => r.value === selectedRange);
+
+            const filteredEvents = useMemo(() => {
+                let filtered = events;
+                if (searchId) {
+                    filtered = filtered.filter(e => e.installation_id.includes(searchId));
+                }
+                filtered = filtered.filter(e => e.level >= selectedRange2.min && e.level <= selectedRange2.max);
+                return filtered;
+            }, [searchId, selectedRange, events, selectedRange2]);
+
+            const stats = useMemo(() => {
+                if (events.length === 0) return null;
+                const completed = events.filter(e => e.event_name === 'level_complete').length;
+                const maxLevel = Math.max(...events.map(e => e.level), 0);
+                const themes = [...new Set(events.map(e => e.theme).filter(Boolean))];
+                return {
+                    totalEvents: events.length,
+                    totalUsers: uniqueUsers.length,
+                    maxLevel,
+                    completedLevels: completed,
+                    themes: themes.length
+                };
+            }, [events, uniqueUsers]);
+
+            return (
+                <div className="container">
+                    <div className="header">
+                        <h1>🎮 Game Analytics Dashboard</h1>
+                        <p>Connect your Google Sheet to view user events, search players, and analyze gameplay</p>
+                    </div>
+
+                    <div className="card">
+                        <div className="info-box">
+                            ℹ️ Share your Google Sheet publicly, then paste the link below
+                        </div>
+                        <div className="url-section">
+                            <input
+                                type="text"
+                                value={sheetUrl}
+                                onChange={(e) => setSheetUrl(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && fetchSheetData()}
+                                placeholder="https://docs.google.com/spreadsheets/d/..."
+                            />
+                            <button onClick={fetchSheetData} disabled={loading}>
+                                {loading ? 'Loading...' : 'Load sheet'}
+                            </button>
+                        </div>
+                        {error && <div className="error">{error}</div>}
+                    </div>
+
+                    {stats && (
+                        <>
+                            <div className="stats-grid">
+                                <div className="stat-card">
+                                    <div className="stat-label">Total events</div>
+                                    <div className="stat-value">{stats.totalEvents.toLocaleString()}</div>
+                                </div>
+                                <div className="stat-card">
+                                    <div className="stat-label">Active users</div>
+                                    <div className="stat-value">{stats.totalUsers}</div>
+                                </div>
+                                <div className="stat-card">
+                                    <div className="stat-label">Highest level</div>
+                                    <div className="stat-value">{stats.maxLevel}</div>
+                                </div>
+                                <div className="stat-card">
+                                    <div className="stat-label">Themes</div>
+                                    <div className="stat-value">{stats.themes}</div>
+                                </div>
+                            </div>
+
+                            <div className="card">
+                                <h3 style={{marginBottom: '15px', fontSize: '16px'}}>Search & Filter</h3>
+                                <div className="search-section">
+                                    <div className="search-group">
+                                        <label>User ID</label>
+                                        <input
+                                            type="text"
+                                            value={searchId}
+                                            onChange={(e) => setSearchId(e.target.value)}
+                                            placeholder="Search user..."
+                                        />
+                                    </div>
+                                    <div className="search-group">
+                                        <label>Level range</label>
+                                        <select value={selectedRange} onChange={(e) => setSelectedRange(e.target.value)}>
+                                            {levelRanges.map(r => (
+                                                <option key={r.value} value={r.value}>{r.label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div style={{fontSize: '13px', color: '#666'}}>
+                                    Found <strong>{filteredEvents.length}</strong> events
+                                </div>
+                            </div>
+
+                            {filteredEvents.length > 0 ? (
+                                <div className="card">
+                                    <div className="table-wrapper">
+                                        <table>
+                                            <thead>
+                                                <tr>
+                                                    <th>Event</th>
+                                                    <th style={{textAlign: 'center'}}>Level</th>
+                                                    <th>Theme</th>
+                                                    <th>Timestamp</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {filteredEvents.slice(0, 50).map((event, idx) => (
+                                                    <tr key={idx}>
+                                                        <td><span className="badge">{event.event_name}</span></td>
+                                                        <td style={{textAlign: 'center', fontWeight: 600}}>{event.level}</td>
+                                                        <td>{event.theme || '—'}</td>
+                                                        <td style={{fontSize: '12px'}}>{event.timestamp}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {filteredEvents.length > 50 && (
+                                        <div className="pagination-info">
+                                            Showing 50 of {filteredEvents.length} events
+                                        </div>
+                                    )}
+                                </div>
+                            ) : searchId ? (
+                                <div className="card">
+                                    <div className="empty-state">
+                                        <i className="fas fa-inbox"></i>
+                                        <p>No events found for this user or level range</p>
+                                    </div>
+                                </div>
+                            ) : null}
+                        </>
+                    )}
+
+                    {!stats && !error && !loading && (
+                        <div className="card">
+                            <div className="empty-state">
+                                <i className="fas fa-cloud-upload-alt"></i>
+                                <p>Paste your Google Sheet URL above to get started</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {loading && (
+                        <div className="card">
+                            <div className="loading">
+                                <i className="fas fa-spinner fa-spin"></i> Loading your data...
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.render(<Dashboard />, document.getElementById('root'));
+    </script>
+</body>
+</html>
